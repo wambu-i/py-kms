@@ -32,6 +32,7 @@ srv_config = {}
 
 ##---------------------------------------------------------------------------------------------------------------------------------------------------------
 
+
 class server_thread(threading.Thread):
         def __init__(self):
                 threading.Thread.__init__(self)
@@ -177,9 +178,18 @@ def server_check():
                 return
 
 def server_create():
-        socketserver.TCPServer.allow_reuse_address = True
-        server = socketserver.TCPServer((srv_config['ip'], srv_config['port']), kmsServer)
-        server.timeout = srv_config['timeout']
+        try:
+                socketserver.TCPServer.address_family = socket.AF_INET6
+                socketserver.TCPServer.allow_reuse_address = True
+                server = socketserver.TCPServer((srv_config['ip'], srv_config['port']), kmsServer)
+                server.timeout = srv_config['timeout']
+
+        except socket.gaierror as e:
+                socketserver.TCPServer.address_family = socket.AF_INET
+                socketserver.TCPServer.allow_reuse_address = True
+                server = socketserver.TCPServer((srv_config['ip'], srv_config['port']), kmsServer)
+                server.timeout = srv_config['timeout']
+
         loggersrv.info("TCP server listening at %s on port %d." % (srv_config['ip'], srv_config['port']))
         loggersrv.info("HWID: %s" % deco(binascii.b2a_hex(srv_config['hwid']), 'utf-8').upper())
         return server
@@ -209,6 +219,7 @@ def srv_main_with_gui(width = 950, height = 660):
 
 class kmsServer(socketserver.BaseRequestHandler):
         def setup(self):
+                self.address_family = socket.AF_INET6
                 loggersrv.info("Connection accepted: %s:%d" % (self.client_address[0], self.client_address[1]))
 
         def handle(self):
